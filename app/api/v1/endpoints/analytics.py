@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.db.database import get_db
 from app.db.models import Analysis
 from app.db.repositories.analyses import require_analysis
+from fastapi import APIRouter, Depends, HTTPException
 
 router = APIRouter(prefix="/analyses")
 
@@ -18,3 +19,28 @@ def overview(analysis_id: str, db: Session = Depends(get_db)):
     return {"analysis_id": a.id, "filename": a.filename, "raw_rows": a.raw_rows,
             "clean_rows": a.clean_rows, "removed_rows": a.raw_rows - a.clean_rows,
             "date_start": a.summary["date_start"], "date_end": a.summary["date_end"]}
+
+@router.get("/{analysis_id}/eda")
+def get_eda(
+    analysis_id: str,
+    db: Session = Depends(get_db)
+):
+    analysis = require_analysis(
+        analysis_id, db
+    )
+
+    eda = analysis.summary.get("eda")
+
+    if eda is None:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "Hasil EDA belum tersedia. "
+                "Silakan upload ulang dataset."
+            )
+        )
+
+    return {
+        "analysis_id": analysis.id,
+        **eda
+    }

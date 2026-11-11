@@ -8,6 +8,7 @@ from app.utils.file_handler import read_dataset
 from app.services.preprocessing import clean_transactions
 from app.services.rfm import calculate_rfm
 from app.services.dashboard import build_dashboard
+from app.services.eda import build_eda
 
 router = APIRouter(prefix="/analyses")
 
@@ -23,6 +24,7 @@ def upload_analysis(file: UploadFile = File(...), db: Session = Depends(get_db))
         clean = clean_transactions(raw)
         rfm = calculate_rfm(clean)
         summary = build_dashboard(clean, rfm)
+        summary["eda"] = build_eda(clean, rfm)
     except (ValueError, KeyError, TypeError, UnicodeError) as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     except Exception as exc:
